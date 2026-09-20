@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pay Safe Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board:#0E1219;
+    --paper:#F4EEDD;
+    --paper-dim:#B9BFC9;
+    --text:#E8EAEE;
+    --ink:#241F16;
+    --ink-soft:#5A5340;
+    --brass:#C9A24B;
+    --approve:#42A47C;
+    --reject:#E06555;
+    --weak:#D8B94A;
+    --glass-bg: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035));
+    --glass-border: rgba(255,255,255,0.16);
+    --glass-shadow: 0 14px 44px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16);
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme: dark; } }
+  :root[data-theme="dark"]{ color-scheme: dark; }
+
+  *{box-sizing:border-box;}
+  html{scroll-padding-top: env(safe-area-inset-top, 0px); height:100%;}
+  body{
+    margin:0; min-height:100%; overflow-x:hidden;
+    background:var(--board);
+    color:var(--text);
+    font-family:'Spectral', Georgia, serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', ui-monospace, monospace;}
+
+  .blob{position:fixed; border-radius:50%; filter:blur(90px); z-index:0; pointer-events:none; opacity:0.55;}
+  .blob-1{width:520px; height:520px; top:-160px; left:-140px; background:radial-gradient(circle,#C9A24B,transparent 70%); animation: float1 22s ease-in-out infinite;}
+  .blob-2{width:460px; height:460px; top:20%; right:-180px; background:radial-gradient(circle,#3E8C82,transparent 70%); animation: float2 26s ease-in-out infinite;}
+  .blob-3{width:420px; height:420px; bottom:-160px; left:20%; background:radial-gradient(circle,#4A6FA5,transparent 70%); animation: float3 24s ease-in-out infinite;}
+  @keyframes float1{0%,100%{transform:translate(0,0);}50%{transform:translate(40px,30px);}}
+  @keyframes float2{0%,100%{transform:translate(0,0);}50%{transform:translate(-30px,40px);}}
+  @keyframes float3{0%,100%{transform:translate(0,0);}50%{transform:translate(30px,-30px);}}
+  @media (prefers-reduced-motion: reduce){ .blob{animation:none;} }
+
+  .page{position:relative; z-index:1;}
+
+  .glass{
+    background:var(--glass-bg);
+    backdrop-filter: blur(26px) saturate(180%);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow:var(--glass-shadow);
+  }
+
+  .navbar{
+    position:sticky;
+    top: calc(env(safe-area-inset-top,0px) + 14px);
+    z-index:20;
+    max-width:760px; margin:14px auto 0; padding:10px 14px;
+    border-radius:20px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    flex-wrap:wrap;
+  }
+  .brand{font-family:'IBM Plex Mono'; font-size:12.5px; letter-spacing:0.03em; color:var(--brass); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46vw;}
+  .tabs{
+    position:relative;
+    display:flex; gap:2px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:999px;
+    padding:4px;
+  }
+  .tab-indicator{
+    position:absolute; top:4px; bottom:4px; left:4px;
+    width:60px; border-radius:999px;
+    background:rgba(255,255,255,0.16);
+    box-shadow:0 4px 14px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform .38s cubic-bezier(.22,.9,.26,1), width .38s cubic-bezier(.22,.9,.26,1), opacity .25s ease;
+    z-index:0;
+  }
+  @media (prefers-reduced-motion: reduce){ .tab-indicator{transition:none;} }
+  .tab-btn{
+    position:relative; z-index:1;
+    font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.01em;
+    padding:8px 16px; border-radius:999px; border:none; background:transparent;
+    color:var(--paper-dim); cursor:pointer; white-space:nowrap;
+    transition: color .25s ease;
+  }
+  .tab-btn.active{color:var(--board); font-weight:600;}
+
+  .wrap{max-width:760px; margin:0 auto; padding:36px 20px 100px;}
+
+  @keyframes viewIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .view{animation: viewIn .5s cubic-bezier(.22,.9,.26,1);}
+  @media (prefers-reduced-motion: reduce){ .view{animation:none;} }
+
+  .hero h1{ font-size:clamp(36px,7vw,54px); font-weight:600; margin:6px 0 10px; line-height:1.05; color:var(--text); }
+  .hero .sub{color:var(--paper-dim); max-width:56ch; font-size:16.5px; margin:0 0 28px;}
+  .stamp-row{display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap;}
+  .stamp{
+    font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.02em;
+    padding:7px 12px; border-radius:999px; color:var(--paper-dim);
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14);
+  }
+
+  .about-card{border-radius:22px; padding:24px 26px; margin-bottom:22px;}
+  .about-card h3{margin:0 0 10px; font-size:18px; font-weight:600; color:var(--text);}
+  .about-card p{margin:0; color:var(--paper-dim); font-size:15px;}
+
+  .cta-row{display:flex; gap:12px; flex-wrap:wrap;}
+
+  .field-label{display:block; font-family:'IBM Plex Mono'; font-size:11px; color:var(--paper-dim); margin-bottom:6px; letter-spacing:0.02em;}
+  .name-input{
+    padding:11px 14px; border-radius:12px;
+    border:1px solid var(--glass-border); background:rgba(255,255,255,0.05);
+    color:var(--text); font-family:'IBM Plex Mono'; font-size:13px;
+  }
+  .name-input::placeholder{color:var(--paper-dim);}
+
+  .btn{
+    font-family:'IBM Plex Mono'; font-size:13px; letter-spacing:0.01em;
+    padding:12px 22px; border-radius:14px; cursor:pointer; border:1px solid var(--glass-border);
+    background:var(--glass-bg); color:var(--text);
+    transition: transform .2s cubic-bezier(.22,.9,.26,1), box-shadow .2s ease, background .2s ease;
+    box-shadow:var(--glass-shadow);
+  }
+  .btn:hover:not(:disabled){ transform:translateY(-2px); }
+  .btn:active:not(:disabled){ transform:translateY(0px) scale(0.98); }
+  .btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .btn.primary{ background:linear-gradient(180deg, rgba(201,162,75,0.30), rgba(201,162,75,0.14)); border-color:rgba(201,162,75,0.55); color:#2A2107; font-weight:600;}
+  .btn.ghost{ background:rgba(255,255,255,0.03); }
+
+  .case-grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  .case-tile{
+    border-radius:18px; padding:18px 20px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    transition: transform .25s cubic-bezier(.22,.9,.26,1), border-color .25s ease, background .25s ease;
+  }
+  .case-tile:hover{ transform:translateY(-3px); border-color:rgba(255,255,255,0.3); }
+  .case-tile .num{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--brass); margin-bottom:4px;}
+  .case-tile .title{font-size:18.5px; color:var(--text); font-weight:500;}
+  .case-tile .right{text-align:right; font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--paper-dim);}
+  .case-tile .right .lvl{display:block; margin-bottom:4px;}
+  .case-tile.done .right .stat{color:var(--approve);}
+  .case-tile .right .stat{color:var(--brass);}
+
+  .back-link{
+    font-family:'IBM Plex Mono'; font-size:12px; color:var(--paper-dim);
+    background:none; border:none; cursor:pointer; padding:0; margin-bottom:22px;
+    display:inline-flex; align-items:center; gap:6px; transition:color .2s ease;
+  }
+  .back-link:hover{color:var(--text);}
+
+  .brief{
+    background:var(--paper); color:var(--ink);
+    padding:26px 28px; border-radius:20px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.4);
+    margin-bottom:28px; position:relative;
+  }
+  .brief .case-tag{
+    font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--ink-soft);
+    margin-bottom:10px; display:flex; gap:10px; align-items:center;
+  }
+  .brief .lvl-pill{border:1px solid var(--ink-soft); padding:2px 9px; border-radius:20px; font-size:10.5px;}
+  .brief h2{margin:0 0 12px; font-size:25px; font-weight:600;}
+  .brief p{margin:0; font-size:16px;}
+
+  .evidence-list{display:flex; flex-direction:column; gap:11px; margin-bottom:26px;}
+  .ev-tile{border-radius:16px; padding:16px 18px; transition: border-color .2s ease;}
+  .ev-head{display:flex; gap:10px; align-items:baseline; margin-bottom:12px;}
+  .ev-id{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--brass); flex-shrink:0;}
+  .ev-text{font-size:15px; color:var(--text);}
+  .ev-choices{display:flex; gap:8px; flex-wrap:wrap;}
+  .choice-btn{
+    font-family:'IBM Plex Mono'; font-size:11.5px;
+    padding:8px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.04); color:var(--paper-dim); cursor:pointer;
+    transition: all .2s cubic-bezier(.22,.9,.26,1);
+  }
+  .choice-btn:hover:not(:disabled){border-color:rgba(255,255,255,0.35); color:var(--text);}
+  .choice-btn:disabled{opacity:0.55; cursor:default;}
+  .choice-btn.picked{
+    background:rgba(255,255,255,0.20);
+    border-color:rgba(255,255,255,0.55);
+    color:var(--text);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+
+  .verdict{font-family:'IBM Plex Mono'; font-size:11.5px; padding-top:10px; margin-top:2px; border-top:1px dashed rgba(255,255,255,0.14); display:flex; gap:8px;}
+  .verdict.correct{color:var(--approve);}
+  .verdict.incorrect{color:var(--reject);}
+
+  .submit-bar{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+  .progress{font-family:'IBM Plex Mono'; font-size:12px; color:var(--paper-dim);}
+
+  .result-panel{border-radius:20px; padding:24px 26px; margin-bottom:24px;}
+  .score-big{font-family:'IBM Plex Mono'; font-size:32px; color:var(--brass); margin-bottom:6px;}
+  .rationale{color:var(--paper-dim); font-size:14.5px; margin-top:14px; padding-top:14px; border-top:1px dashed rgba(255,255,255,0.14);}
+
+  .report h2{font-size:26px; margin:6px 0 4px; color:var(--text);}
+  .rank{font-family:'IBM Plex Mono'; color:var(--brass); font-size:14px; margin-bottom:26px;}
+  .final-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:24px;}
+  .final-cell{border-radius:14px; padding:14px; text-align:center;}
+  .final-cell.pending{opacity:0.5;}
+  .final-cell .n{font-family:'IBM Plex Mono'; font-size:20px; color:var(--text);}
+  .final-cell .l{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--paper-dim); margin-top:4px;}
+
+  .lb-row{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 2px; border-bottom:1px dashed rgba(255,255,255,0.10);
+    font-family:'IBM Plex Mono'; font-size:12.5px;
+  }
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{color:var(--brass); width:22px; flex-shrink:0;}
+  .lb-name{flex:1; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lb-score{color:var(--paper-dim); flex-shrink:0;}
+
+  .judge-row{
+    display:flex; justify-content:space-between; gap:12px;
+    font-family:'IBM Plex Mono'; font-size:12.5px; padding:9px 0;
+    border-bottom:1px dashed rgba(255,255,255,0.10);
+  }
+  .judge-row:last-child{border-bottom:none;}
+  .judge-verdict{font-weight:600; text-transform:uppercase; flex-shrink:0;}
+
+  footer.foot{
+    max-width:760px; margin:0 auto; padding:10px 24px 50px; position:relative; z-index:1;
+    font-family:'IBM Plex Mono'; font-size:11px; color:var(--ink-soft); text-align:center;
+  }
+
+  @media (max-width:480px){
+    .wrap{padding:26px 14px 90px;}
+    .hero h1{font-size:32px;}
+    .brief{padding:20px 18px;}
+    .navbar{margin:10px 10px 0; padding:8px 10px;}
+  }
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="page">
+  <nav class="navbar glass">
+    <span class="brand" id="brandText">PAY SAFE CHALLENGE</span>
+    <div class="tabs" id="tabs">
+      <div class="tab-indicator" id="tabIndicator"></div>
+      <button class="tab-btn" data-tab="cases">Cases</button>
+      <button class="tab-btn" data-tab="results">Results</button>
+    </div>
+  </nav>
+
+  <div class="wrap" id="app"></div>
+
+  <footer class="foot">A guided exercise in separating relevant evidence from noise.</footer>
+</div>
+
+<script>
+const CASES = [
+  { id:1, level:"Easy", title:"The Missing Payment",
+    scenario:"Riya purchases a ₹2,500 smartphone online. Her bank account shows that ₹2,500 was deducted, but the shopping website says “Payment Failed.” The seller claims they never received the money.",
+    evidence:[
+      {id:"E1", text:"Bank statement showing ₹2,500 debit", answer:"relevant"},
+      {id:"E2", text:"Payment gateway transaction status showing “Failed”", answer:"relevant"},
+      {id:"E3", text:"Screenshot of the phone model advertised on the website", answer:"irrelevant"},
+      {id:"E4", text:"Transaction ID generated during payment", answer:"relevant"},
+      {id:"E5", text:"Riya's phone brand and model", answer:"irrelevant"},
+      {id:"E6", text:"Bank's transaction/refund status", answer:"relevant"},
+    ],
+    rationale:"These records directly address whether the payment was processed and what happened to the money." },
+  { id:2, level:"Easy", title:"The Fake Payment Screenshot",
+    scenario:"A customer purchases ₹8,000 worth of products from a small business. The customer sends a screenshot claiming that the payment was successful. However, the seller's bank account has received nothing.",
+    evidence:[
+      {id:"E1", text:"Screenshot of the customer's payment confirmation", answer:"relevant"},
+      {id:"E2", text:"Seller's bank statement for the transaction date", answer:"relevant"},
+      {id:"E3", text:"Transaction/reference number shown in the payment screenshot", answer:"relevant"},
+      {id:"E4", text:"Customer's social-media profile picture", answer:"irrelevant"},
+      {id:"E5", text:"Bank/payment gateway confirmation of successful settlement", answer:"relevant"},
+      {id:"E6", text:"Colour of the customer's phone case", answer:"irrelevant"},
+    ],
+    rationale:"A screenshot is evidence, but it does not independently prove that the seller actually received the money." },
+  { id:3, level:"Average", title:"The QR Code Payment",
+    scenario:"A café displays a QR code for payment. A customer scans it and pays ₹1,200. Later, the café discovers that the money went to an unexpected account.",
+    evidence:[
+      {id:"E1", text:"Photograph of the QR code displayed at the café", answer:"relevant"},
+      {id:"E2", text:"Payment receipt showing the recipient/account name", answer:"relevant"},
+      {id:"E3", text:"Bank statement showing the ₹1,200 debit", answer:"relevant"},
+      {id:"E4", text:"Customer's favourite café food", answer:"irrelevant"},
+      {id:"E5", text:"QR-code/UPI transaction ID", answer:"relevant"},
+      {id:"E6", text:"Café's electricity bill", answer:"irrelevant"},
+      {id:"E7", text:"Screenshot showing the account/UPI ID encoded in the QR", answer:"relevant"},
+    ],
+    rationale:"The evidence should establish where the QR directed the payment and trace the transaction." },
+  { id:4, level:"Average", title:"The Subscription Trap",
+    scenario:"Arjun signs up for a ₹99 introductory subscription. The website says the first month costs ₹99. One month later, ₹999 is automatically deducted from his account.",
+    evidence:[
+      {id:"E1", text:"Original subscription page showing the ₹99 introductory price", answer:"relevant"},
+      {id:"E2", text:"Terms describing the recurring subscription charge", answer:"relevant"},
+      {id:"E3", text:"Bank statement showing ₹999 deduction", answer:"relevant"},
+      {id:"E4", text:"Arjun's laptop model", answer:"irrelevant"},
+      {id:"E5", text:"Email confirming subscription activation", answer:"relevant"},
+      {id:"E6", text:"Screenshot of the company's logo", answer:"irrelevant"},
+      {id:"E7", text:"Cancellation/refund policy displayed at signup", answer:"relevant"},
+    ],
+    rationale:"The relevant evidence concerns the advertised price, recurring terms, authorization/activation, and actual debit." },
+  { id:5, level:"Difficult", title:"The Altered Invoice",
+    scenario:"A business receives an electronic invoice for ₹48,000. The employee pays it. Later, the company discovers that the actual supplier had issued an invoice for only ₹18,000. The question is whether the ₹48,000 invoice was genuine or altered.",
+    evidence:[
+      {id:"E1", text:"Original invoice obtained directly from the supplier", answer:"relevant"},
+      {id:"E2", text:"₹48,000 payment record from the company's bank account", answer:"relevant"},
+      {id:"E3", text:"Email through which the ₹48,000 invoice was received", answer:"relevant"},
+      {id:"E4", text:"Metadata/file history of the electronic invoice, if available", answer:"relevant"},
+      {id:"E5", text:"Employee's department in the company", answer:"irrelevant"},
+      {id:"E6", text:"Supplier's original invoice number/reference", answer:"relevant"},
+      {id:"E7", text:"Screenshot of the supplier's website homepage", answer:"irrelevant"},
+      {id:"E8", text:"Email/message from the supplier confirming the actual invoice amount", answer:"relevant"},
+    ],
+    rationale:"The case requires connecting document authenticity, the payment trail, and evidence from the actual supplier." },
+  { id:6, level:"Difficult", weakAllowed:true, title:"The Suspicious Refund",
+    scenario:"A customer claims that an online merchant promised a ₹15,000 refund. The customer provides a screenshot saying “Refund Successful.” However, ₹15,000 has not appeared in the customer's bank account. The merchant says the refund was never processed.",
+    evidence:[
+      {id:"E1", text:"Customer's screenshot showing “Refund Successful”", answer:"relevant"},
+      {id:"E2", text:"Refund transaction/reference ID", answer:"relevant"},
+      {id:"E3", text:"Customer's bank statement covering the expected refund period", answer:"relevant"},
+      {id:"E4", text:"Merchant's refund/settlement record", answer:"relevant"},
+      {id:"E5", text:"Original purchase transaction record", answer:"relevant"},
+      {id:"E6", text:"Customer's social-media post complaining about the merchant", answer:"weak"},
+      {id:"E7", text:"Customer's phone wallpaper", answer:"irrelevant"},
+      {id:"E8", text:"Bank/payment processor confirmation of whether the refund was actually settled", answer:"relevant"},
+      {id:"E9", text:"Merchant's logo downloaded from its website", answer:"irrelevant"},
+    ],
+    rationale:"E6 is relevant as supporting context but weak on its own. The strongest approach is to follow the complete trail: original payment → refund initiated → refund reference → processor/bank settlement → customer account." },
+];
+
+// Change this to set your own judge password.
+const RESULTS_PASSWORD = "paysafe2026";
+
+const picks = {};
+const completed = {};
+let team = { name:"", member1:"", member2:"" };
+let setupError = "";
+let unlocked = false;
+let passwordError = "";
+let leaderboardSaved = false;
+let view = { screen: "setup" };
+
+function totalScore(){
+  let correct=0, total=0;
+  Object.values(completed).forEach(c=>{correct+=c.correct; total+=c.total;});
+  return {correct, total};
+}
+
+function teamReady(){
+  return team.name.trim() && team.member1.trim() && team.member2.trim();
+}
+
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+function escapeHtml(s){ return (s||'').replace(/</g,'&lt;'); }
+
+function tabKey(screen){
+  if(screen === "case") return "cases";
+  if(screen === "setup") return "";
+  return screen;
+}
+
+function positionIndicator(){
+  const active = tabKey(view.screen);
+  const ind = document.getElementById('tabIndicator');
+  if(!ind) return;
+  const btn = active ? document.querySelector(`.tab-btn[data-tab="${active}"]`) : null;
+  if(!btn){ ind.style.opacity = '0'; return; }
+  ind.style.opacity = '1';
+  ind.style.width = btn.offsetWidth + "px";
+  ind.style.transform = `translateX(${btn.offsetLeft - 4}px)`;
+}
+
+function syncTabs(){
+  const active = tabKey(view.screen);
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab === active);
+  });
+  requestAnimationFrame(positionIndicator);
+}
+
+function updateBrand(){
+  const el = document.getElementById('brandText');
+  if(el) el.textContent = team.name ? team.name.toUpperCase() : 'PAY SAFE CHALLENGE';
+}
+
+function goto(screen, extra){
+  if((screen === "cases" || screen === "case" || screen === "results") && !teamReady()){
+    screen = "setup";
+  }
+  view = Object.assign({screen}, extra || {});
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function loadLeaderboard(){
+  try{
+    const raw = localStorage.getItem('psc_leaderboard');
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveLeaderboardEntry(entry){
+  try{
+    const list = loadLeaderboard();
+    list.push(entry);
+    list.sort((a,b)=> b.pct - a.pct || b.correct - a.correct);
+    localStorage.setItem('psc_leaderboard', JSON.stringify(list.slice(0,20)));
+  }catch(e){ /* storage unavailable, skip silently */ }
+}
+function renderLeaderboardList(){
+  const list = loadLeaderboard();
+  if(!list.length) return `<p style="color:var(--paper-dim); font-size:13px; margin:0;">No teams on the leaderboard yet — be the first.</p>`;
+  return list.map((e,i)=>`
+    <div class="lb-row">
+      <span class="lb-rank">#${i+1}</span>
+      <span class="lb-name">${escapeHtml(e.teamName || 'Unnamed Team')}</span>
+      <span class="lb-score">${e.correct}/${e.total} · ${e.pct}%</span>
+    </div>
+  `).join('');
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(view.screen === "setup") app.innerHTML = renderSetup();
+  else if(view.screen === "cases") app.innerHTML = renderCases();
+  else if(view.screen === "case") app.innerHTML = renderCaseDetail(view.caseId);
+  else if(view.screen === "results") app.innerHTML = renderResults();
+  syncTabs();
+  updateBrand();
+  attachHandlers();
+}
+
+function renderSetup(){
+  return `
+    <section class="view hero">
+      <h1>Pay Safe<br>Challenge</h1>
+      <p class="sub">Six digital-payment disputes, shaped like real support tickets. Work with a partner to sort each piece of evidence — then submit for judging.</p>
+      <div class="stamp-row">
+        <span class="stamp">Relevant</span>
+        <span class="stamp">Irrelevant</span>
+        <span class="stamp">Weak / Supporting</span>
+      </div>
+      <div class="about-card glass">
+        <h3>How it works</h3>
+        <p>Enter your team below, then work through all six cases together, sorting each piece of evidence. Once you submit a case your answers lock — there's no peeking at results. A judge unlocks scoring with a password once you're done.</p>
+      </div>
+      <div class="about-card glass">
+        <h3>Team Setup</h3>
+        <div style="display:flex; flex-direction:column; gap:14px; margin-top:14px;">
+          <div>
+            <label class="field-label">Team Name</label>
+            <input id="teamNameInput" class="name-input" style="width:100%;" type="text" placeholder="e.g. Cyber Hawks" maxlength="30" value="${escapeAttr(team.name)}">
+          </div>
+          <div>
+            <label class="field-label">Team Member 1</label>
+            <input id="member1Input" class="name-input" style="width:100%;" type="text" placeholder="First member's name" maxlength="24" value="${escapeAttr(team.member1)}">
+          </div>
+          <div>
+            <label class="field-label">Team Member 2</label>
+            <input id="member2Input" class="name-input" style="width:100%;" type="text" placeholder="Second member's name" maxlength="24" value="${escapeAttr(team.member2)}">
+          </div>
+        </div>
+        ${setupError ? `<div style="color:var(--reject); font-family:'IBM Plex Mono'; font-size:12.5px; margin-top:12px;">${setupError}</div>` : ''}
+        <div class="cta-row" style="margin-top:18px;">
+          <button class="btn primary" id="startBtn">Start Investigation</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderCases(){
+  const doneCount = Object.keys(completed).length;
+  return `
+    <section class="view">
+      <div class="case-grid">
+        ${CASES.map(c=>{
+          const done = completed[c.id];
+          return `
+          <div class="case-tile glass ${done?'done':''}" data-case="${c.id}">
+            <div class="left">
+              <div class="num">CASE ${String(c.id).padStart(2,'0')}</div>
+              <div class="title">${c.title}</div>
+            </div>
+            <div class="right">
+              <span class="lvl">${c.level.toUpperCase()}</span>
+              <span class="stat">${done ? '✓ Submitted' : 'Open →'}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      ${doneCount === CASES.length ? `<div style="margin-top:22px;"><button class="btn primary" id="toResults">See Results</button></div>` : ''}
+    </section>
+  `;
+}
+
+function renderCaseDetail(caseId){
+  const c = CASES.find(x=>x.id===caseId);
+  const casePicks = picks[caseId] || (picks[caseId] = {});
+  const graded = !!completed[caseId];
+  const pickedCount = Object.keys(casePicks).length;
+  const allPicked = pickedCount === c.evidence.length;
+  const choiceSet = c.weakAllowed
+    ? [["relevant","Relevant"],["weak","Weak / Supporting"],["irrelevant","Irrelevant"]]
+    : [["relevant","Relevant"],["irrelevant","Irrelevant"]];
+
+  return `
+    <section class="view">
+      <button class="back-link" id="backCases">← Back to case files</button>
+      <div class="brief">
+        <div class="case-tag">
+          <span>CASE ${String(c.id).padStart(2,'0')}</span>
+          <span class="lvl-pill">${c.level}</span>
+        </div>
+        <h2>${c.title}</h2>
+        <p>${c.scenario}</p>
+      </div>
+
+      <div class="evidence-list">
+        ${c.evidence.map(ev=>{
+          const pick = casePicks[ev.id];
+          const isCorrect = (graded && unlocked) ? (pick === ev.answer) : null;
+          return `
+          <div class="ev-tile glass" data-ev="${ev.id}">
+            <div class="ev-head">
+              <span class="ev-id">${ev.id}</span>
+              <span class="ev-text">${ev.text}</span>
+            </div>
+            <div class="ev-choices">
+              ${choiceSet.map(([val,label])=>`
+                <button class="choice-btn ${pick===val?'picked':''}" data-val="${val}" ${graded?'disabled':''}>${label}</button>
+              `).join('')}
+            </div>
+            ${(graded && unlocked) ? `<div class="verdict ${isCorrect?'correct':'incorrect'}">${isCorrect ? '✓ Correct' : '✕ Marked ' + (pick||'—') + ' — should be ' + ev.answer}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${graded ? (unlocked ? `
+        <div class="result-panel glass">
+          <div class="score-big">${completed[c.id].correct} / ${completed[c.id].total}</div>
+          <div>Evidence correctly sorted.</div>
+          <div class="rationale">${c.rationale}</div>
+        </div>
+        <button class="btn ghost" id="backCases2">Back to case files</button>
+      ` : `
+        <div class="result-panel glass">
+          <div class="mono" style="font-size:13px; color:var(--paper-dim);">🔒 Submitted. Results are locked until a judge unlocks them.</div>
+        </div>
+        <button class="btn ghost" id="backCases2">Back to case files</button>
+      `) : `
+        <div class="submit-bar">
+          <span class="progress">${pickedCount} / ${c.evidence.length} marked</span>
+          <button class="btn primary" id="submitCase" ${allPicked?'':'disabled'}>Close the case</button>
+        </div>
+      `}
+    </section>
+  `;
+}
+
+function renderResults(){
+  if(!unlocked){
+    return `
+      <section class="view">
+        <div class="about-card glass" style="max-width:480px; margin:0 auto;">
+          <h3>🔒 Results Locked</h3>
+          <p>Scores and the answer key stay hidden until a judge enters the password.</p>
+          <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+            <input id="resultsPasswordInput" class="name-input" style="flex:1; min-width:140px;" type="password" placeholder="Judge password">
+            <button class="btn primary" id="unlockBtn">Unlock</button>
+          </div>
+          ${passwordError ? `<div style="color:var(--reject); font-family:'IBM Plex Mono'; font-size:12px; margin-top:10px;">${passwordError}</div>` : ''}
+        </div>
+      </section>
+    `;
+  }
+
+  const {correct, total} = totalScore();
+  const pct = total ? Math.round((correct/total)*100) : 0;
+  const attempted = Object.keys(completed).length;
+  let rank = "Not started";
+  if(attempted > 0){
+    rank = "Rookie Investigator";
+    if(pct >= 95) rank = "Master Investigator";
+    else if(pct >= 85) rank = "Senior Investigator";
+    else if(pct >= 70) rank = "Fraud Analyst";
+  }
+
+  return `
+    <section class="view report">
+      <h2>Results — ${escapeHtml(team.name) || 'Your Team'}</h2>
+      <div class="rank">${attempted ? rank + ' · ' + pct + '% accuracy across ' + attempted + '/' + CASES.length + ' cases' : 'No cases submitted yet.'}</div>
+
+      <div class="final-grid">
+        ${CASES.map(c=>{
+          const d = completed[c.id];
+          if(!d) return `<div class="final-cell glass pending"><div class="n">—</div><div class="l">CASE ${c.id} · NOT SUBMITTED</div></div>`;
+          return `<div class="final-cell glass"><div class="n">${d.correct}/${d.total}</div><div class="l">CASE ${c.id} · ${c.level.toUpperCase()}</div></div>`;
+        }).join('')}
+      </div>
+
+      <div class="about-card glass">
+        <h3>Leaderboard (this device)</h3>
+        ${attempted === CASES.length ? (
+          leaderboardSaved
+            ? `<p style="color:var(--approve); font-size:13.5px; margin:0 0 14px;">✓ Your team's score has been added.</p>`
+            : `<div class="cta-row" style="margin-bottom:16px;"><button class="btn primary" id="saveScoreBtn">Add our score to leaderboard</button></div>`
+        ) : `<p style="color:var(--paper-dim); font-size:13.5px; margin:0 0 14px;">Submit all 6 cases to add your team's score.</p>`}
+        ${renderLeaderboardList()}
+      </div>
+
+      <div class="about-card glass">
+        <h3>Answer Key & Rationale</h3>
+        ${CASES.map(c=>`
+          <div style="margin-bottom:18px; padding-bottom:18px; border-bottom:1px dashed rgba(255,255,255,0.12);">
+            <div style="font-family:'IBM Plex Mono'; font-size:12px; color:var(--brass); margin-bottom:8px;">CASE ${String(c.id).padStart(2,'0')} · ${c.title}</div>
+            ${c.evidence.map(ev=>{
+              const color = ev.answer==='relevant' ? 'var(--approve)' : ev.answer==='irrelevant' ? 'var(--reject)' : 'var(--weak)';
+              return `<div class="judge-row"><span style="color:var(--text); flex:1;">${ev.id} — ${ev.text}</span><span class="judge-verdict" style="color:${color};">${ev.answer}</span></div>`;
+            }).join('')}
+            <p style="margin-top:10px; font-size:13px; color:var(--paper-dim);"><em>${c.rationale}</em></p>
+          </div>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function attachHandlers(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>goto(btn.dataset.tab));
+  });
+
+  const startBtn = document.getElementById('startBtn');
+  if(startBtn) startBtn.addEventListener('click', ()=>{
+    const n = (document.getElementById('teamNameInput')||{}).value || '';
+    const m1 = (document.getElementById('member1Input')||{}).value || '';
+    const m2 = (document.getElementById('member2Input')||{}).value || '';
+    team = { name:n.trim(), member1:m1.trim(), member2:m2.trim() };
+    if(!teamReady()){
+      setupError = "Please fill in your team name and both member names.";
+      render();
+      return;
+    }
+    setupError = "";
+    goto('cases');
+  });
+
+  document.querySelectorAll('.case-tile').forEach(el=>{
+    el.addEventListener('click', ()=>goto('case', {caseId: Number(el.dataset.case)}));
+  });
+
+  const back = document.getElementById('backCases');
+  if(back) back.addEventListener('click', ()=>goto('cases'));
+  const back2 = document.getElementById('backCases2');
+  if(back2) back2.addEventListener('click', ()=>goto('cases'));
+
+  const toResults = document.getElementById('toResults');
+  if(toResults) toResults.addEventListener('click', ()=>goto('results'));
+
+  document.querySelectorAll('.ev-tile').forEach(tile=>{
+    const evId = tile.dataset.ev;
+    tile.querySelectorAll('.choice-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(view.screen !== 'case') return;
+        if(completed[view.caseId]) return;
+        picks[view.caseId][evId] = btn.dataset.val;
+        render();
+      });
+    });
+  });
+
+  const submitBtn = document.getElementById('submitCase');
+  if(submitBtn) submitBtn.addEventListener('click', ()=>{
+    const c = CASES.find(x=>x.id===view.caseId);
+    const casePicks = picks[view.caseId];
+    let correct = 0;
+    c.evidence.forEach(ev=>{ if(casePicks[ev.id] === ev.answer) correct++; });
+    completed[view.caseId] = {correct, total: c.evidence.length};
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  const unlockBtn = document.getElementById('unlockBtn');
+  if(unlockBtn) unlockBtn.addEventListener('click', ()=>{
+    const input = document.getElementById('resultsPasswordInput');
+    const val = (input && input.value) || '';
+    if(val === RESULTS_PASSWORD){
+      unlocked = true;
+      passwordError = "";
+    } else {
+      passwordError = "Incorrect password.";
+    }
+    render();
+  });
+
+  const saveScoreBtn = document.getElementById('saveScoreBtn');
+  if(saveScoreBtn) saveScoreBtn.addEventListener('click', ()=>{
+    const {correct, total} = totalScore();
+    const pct = total ? Math.round((correct/total)*100) : 0;
+    saveLeaderboardEntry({
+      teamName: team.name, member1: team.member1, member2: team.member2,
+      correct, total, pct, date: new Date().toLocaleDateString()
+    });
+    leaderboardSaved = true;
+    render();
+  });
+}
+
+window.addEventListener('resize', ()=>requestAnimationFrame(positionIndicator));
+render();
+</script>
+</body>
+</html>
